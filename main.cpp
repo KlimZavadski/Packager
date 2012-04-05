@@ -7,6 +7,7 @@
 #include <iomanip>
 using namespace std;
 
+
 #include <map>
 #include <vector>
 #include <bitset>
@@ -114,6 +115,52 @@ vector<Node>::iterator FindLeastNode(vector<Node> *nodeVector)
     }
     return minIt;
 }
+
+
+/// Return a tree that code symbols in map.
+Node* GetHaffmanTree(map<char, unsigned int> *symbolsMap)
+{
+    vector<Node> *nodeVector = ConvertMapToVector(symbolsMap);
+    int actualCount = nodeVector->size();
+    while (actualCount > 1)
+    {
+        vector<Node>::iterator it_1 = FindLeastNode(nodeVector);    // min_1.
+        it_1->actual = false;
+        vector<Node>::iterator it_2 = FindLeastNode(nodeVector);    // min_2 >= min_1.
+        it_2->actual = false;
+        
+        Node *node = new Node();
+        node->count = it_1->count + it_2->count;
+        node->left = &(*it_2);      // Left leaf. It have a code 0.
+        node->right = &(*it_1);     // Right leaf. It have a code 1.
+        nodeVector->push_back(*node);
+
+        actualCount--;
+    }
+    return &(nodeVector->back());
+}
+
+/// Craete a binary code for all coding symbols.
+void GetSymbolsCode(Node *nodeTree, map<char, unsigned int> *symbolsMap, unsigned int code)
+{
+    if (nodeTree->left != NULL)
+    {
+        code <<= 1;
+        GetSymbolsCode(nodeTree->left, symbolsMap, code);       // Left code 0.
+        gets("Ok. Left.");
+    }
+    if (nodeTree->right != NULL)
+    {
+        code <<= 1;
+        code += 1;
+        GetSymbolsCode(nodeTree->right, symbolsMap, code);      // Right code 1.
+        gets("Ok. Right.");
+    }
+    map<char, unsigned int>::value_type *valueType =
+        new map<char, unsigned int>::value_type(nodeTree->c, code);
+    symbolsMap->insert(*valueType);
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 void main()
