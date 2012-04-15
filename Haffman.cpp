@@ -1,104 +1,67 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <conio.h>
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-using namespace std;
+// Haffman.cpp
+#include "Haffman.h"
 
-//#include <Windows.h>
-//#include <time.h>
-//#include <math.h>
+#define blockSize 1048576   // = 1MB.
+#include <time.h>
 
-#include <map>
-#include <vector>
-#include <bitset>
-
-
-class Node
+/// Constructor.
+Haffman::Haffman(string fileName)
 {
-public:
-    char c;
-    unsigned int count;
-    bool actual;
-    bool composite;
-    Node *left, *right;
-    Node *nextNode;
+    this->fileName = fileName;
 
-    Node()
-    {
-        this->c = 0;
-        this->count = 0;
-        this->actual = true;
-        this->composite = false;
-        this->left = this->right = NULL;
-        this->nextNode = NULL;
-    }
-    Node(char c)
-    {
-        this->c = c;
-        this->count = 1;
-        this->actual = true;
-        this->composite = false;
-        this->left = this->right = NULL;
-        this->nextNode = NULL;
-    }    
-    static Node* Max(Node *node1, Node *node2)
-    {
-        if ((int)node1->c <= (int)node2->c)
-            return node1;
-        else return node2;
-    }
-    static Node* Min(Node *node1, Node *node2)
-    {
-        if ((int)node1->c > (int)node2->c)
-            return node1;
-        else return node2;
-    }
-    static Node* AddNewNode(Node *node1, Node *node2)
-    {
-        Node *newNode = new Node();
-        newNode->composite = true;
-        newNode->count = node1->count + node2->count;        
-        while (true)
-        {
-            if (node1->composite && node2->composite)
-            {
-                newNode->c = (int)node1->c + (int)node2->c;
-                newNode->left = Min(node1, node2);      // Left leaf - min. It have a code 1.
-                newNode->right = Max(node1, node2);     // Right leaf - max. It have a code 0.
-                break;
-            }
-            if (node1->composite)
-            {
-                newNode->c = (int)node1->c + 1;
-                newNode->left = node1;
-                newNode->right = node2;
-                break;
-            }
-            if (node2->composite)
-            {
-                newNode->c = (int)node2->c + 1;
-                newNode->left = node2;
-                newNode->right = node1;
-                break;
-            }
-            else
-            {
-                newNode->c = 1;
-                newNode->left = node1;
-                newNode->right = node2;
-                break;
-            }
-        }
-        return newNode;
-    }
-};
+    this->inputFile.open(fileName.c_str(), ios::in | ios::binary);
+    this->inputFile.seekg(0, ios_base::end);
+    this->inputFileSize = this->inputFile.tellg();
+    this->inputFile.seekg(0);
 
+    fileName += ".pac";
+    this->outputFile.open(fileName.c_str(), ios::out | ios::binary);
+    if (!inputFile || !outputFile)
+    {
+        this->statusOk = false;
+    }
+    this->outputFileSize = 0;
+    this->data = NULL;
+
+    this->symbolsMap = new map<char, unsigned int>;
+    this->codesMap = new map<char, string>;
+    this->charMap = new map<string, char>;
+    this->treeNode = NULL;
+}
+
+/// Destructor.
+Haffman::~Haffman()
+{
+    inputFile.close();
+    outputFile.close();
+
+    delete this->symbolsMap;
+    delete this->codesMap;
+    delete this->treeNode;
+    delete this->charMap;
+    delete this->data;
+}
+
+//
+/// Read count bytes from fileIn.
+char* Haffman::ReadFromFile(int count)
+{
+    char *buffer = (char*)calloc(count, 1);
+    inputFile.read(buffer, count);
+    return buffer;
+}
+
+/// Write count bytes to fileOut.
+int Haffman::WriteToFile(char *buffer, int count)
+{
+    outputFile.write(buffer, count);
+    return count;
+}
+//
+// Encode.
 
 /// Add symbol to map.
-void AddSymbolToMap(char c, map<char, unsigned int> *symbolsMap)
+void Haffman::AddSymbolToMap(char c, map<char, unsigned int> *symbolsMap)
 {
     map<char, unsigned int>::iterator it = symbolsMap->find(c);
     if (it == symbolsMap->end())        // Element not found. Create new record.
@@ -114,36 +77,38 @@ void AddSymbolToMap(char c, map<char, unsigned int> *symbolsMap)
 }
 
 /// Return a map that include all characters from file.
-map<char, unsigned int>* GetSymbolMap(char *fileName)
+map<char, unsigned int>* Haffman::GetSymbolsMap()
 {
-    map<char, unsigned int> *symbolsMap = NULL;
+    map<char, unsigned int> *symbolsMap = new map<char, unsigned int>;
     ifstream file;
-    file.open(fileName, ios::in | ios::binary);
+    int positionInFile = 0, i;
+    file.open(fileName.c_str(), ios::in | ios::binary);
     if (file)
     {
-        symbolsMap = new map<char, unsigned int>;
         while (!file.eof())
         {
-            char *s = new char[];
-            int i = 0;
-            file.getline(s, 10240);
-            while (s[i] != '\0')
+            i = 0;
+            char *buffer = (char*)calloc(blockSize, 1);
+            file.read(buffer, blockSize);
+            while (i < blockSize && positionInFile < inputFileSize)
             {
-                AddSymbolToMap(s[i], symbolsMap);
+                AddSymbolToMap(buffer[i], symbolsMap);
                 i++;
+                positionInFile++;
             }
+            delete[] buffer;
         }
+        file.close();
     }
-    file.close();
     return symbolsMap;
 }
 
 /// Build a list of Node from symbols map.
-Node* GetNodeList(map<char, unsigned int> *symbolsMap)
+Node* Haffman::GetNodeList(map<char, unsigned int> *symbolsMap)
 {
     Node *firstNode = NULL;
     Node *currentNode = NULL;
-    map<char, unsigned int>::iterator constIt;
+    map<char, unsigned int>::const_iterator constIt;
     for (constIt = symbolsMap->begin(); constIt != symbolsMap->end(); constIt++)
     {
         Node *node = new Node(constIt->first);
@@ -163,7 +128,7 @@ Node* GetNodeList(map<char, unsigned int> *symbolsMap)
 }
 
 /// Return the last Node of the list.
-Node* GetLastNode(Node *firstNode)
+Node* Haffman::GetLastNode(Node *firstNode)
 {
     Node *lastNode;
     for (lastNode = firstNode; lastNode->nextNode != NULL; lastNode = lastNode->nextNode);
@@ -171,7 +136,7 @@ Node* GetLastNode(Node *firstNode)
 }
 
 /// Looking for a Node with a minimum content of the node.
-Node* FindLeastNode(Node *firstNode)
+Node* Haffman::FindLeastNode(Node *firstNode)
 {
     Node *node, *minNode = NULL;
     for (node = firstNode; node != NULL; node = node->nextNode)
@@ -195,7 +160,7 @@ Node* FindLeastNode(Node *firstNode)
 }
 
 /// Return a tree that code symbols in map.
-Node* GetHaffmanTree(map<char, unsigned int> *symbolsMap)
+Node* Haffman::GetHaffmanTree(map<char, unsigned int> *symbolsMap)
 {
     Node *firstNode = GetNodeList(symbolsMap);
     Node *lastNode = GetLastNode(firstNode);
@@ -206,50 +171,301 @@ Node* GetHaffmanTree(map<char, unsigned int> *symbolsMap)
         node1->actual = false;
         Node *node2 = FindLeastNode(firstNode);    // min_2 >= min_1.
         node2->actual = false;
-        
+
         Node *newNode = Node::AddNewNode(node1, node2);
         lastNode->nextNode = newNode;
         lastNode = newNode;
-
         actualCount--;
     }
     return lastNode;
 }
 
 /// Craete a binary code for all coding symbols.
-void GetSymbolsCode(Node *nodeTree, map<char, unsigned int> *symbolsMap, unsigned int currentCode)
+void Haffman::GetSymbolsCode(Node *nodeTree, map<char, string> *codesMap, string code)
 {
-    unsigned int code = currentCode;
-    code <<= 1;
     if (nodeTree->right != NULL)
-    {                
-        GetSymbolsCode(nodeTree->right, symbolsMap, code);      // Right code 0.
-        puts("Ok. Right.");
+    {
+        GetSymbolsCode(nodeTree->right, codesMap, code + "0");      // Right code 0.
     }
     if (nodeTree->left != NULL)
     {
-        code += 1;
-        GetSymbolsCode(nodeTree->left, symbolsMap, code);       // Left code 1.
-        puts("Ok. Left.");
+        GetSymbolsCode(nodeTree->left, codesMap, code + "1");       // Left code 1.
     }
     if (!nodeTree->composite)
     {
-        map<char, unsigned int>::value_type *valueType =
-            new map<char, unsigned int>::value_type(nodeTree->c, currentCode);
-        symbolsMap->insert(*valueType);
+        map<char, string>::value_type *valueType =
+            new map<char, string>::value_type(nodeTree->c, code);
+        codesMap->insert(*valueType);
     }
 }
 
-
-//////////////////////////////////////////////////////////////////////////
-void main()
+/// Add apsent null.
+string Haffman::NormalizeCode(string code, byte maxCodeSize)
 {
-    map<char, unsigned int> *symbolsMap;
-    symbolsMap = GetSymbolMap("text.txt");
-    if (symbolsMap)
+    string nul = "";
+    for (byte i = 0; i < maxCodeSize - code.length(); i++)
     {
-        Node *nodeTree = GetHaffmanTree(symbolsMap);
-        symbolsMap->clear();
-        GetSymbolsCode(nodeTree, symbolsMap, 0);
+        nul += "0";
     }
+    return nul + "1" + code;
+}
+
+/// Encode tree.
+int Haffman::EncodeTree(char *data, map<char, string> *codesMap)
+{
+    // Search max length of code.
+    byte maxCodeSize = 1;
+    map<char, string>::const_iterator constIt;
+    for (constIt = codesMap->begin(); constIt != codesMap->end(); constIt++)
+    {
+        if (maxCodeSize < constIt->second.length())
+        {
+            maxCodeSize = constIt->second.length();
+        }
+    }
+    data[0] = (char)this->inputFileSize >> 24;
+    data[1] = (char)this->inputFileSize >> 16;
+    data[2] = (char)this->inputFileSize >> 8;
+    data[3] = (char)this->inputFileSize;
+    data[4] = maxCodeSize + 1;
+    
+    // Create code string.
+    int outputIndex = 5;
+    byte inputIndex = 0, index, bit = 7;
+    bitset<8> oneByte;
+    char *s = (char*)calloc(256, 1);
+    string code;
+    string nullCode = NormalizeCode("", maxCodeSize);
+
+    do
+    {
+        map<char, string>::const_iterator constIt = codesMap->find((char)inputIndex);
+        if (constIt == codesMap->end())
+        {
+            code = nullCode;
+        }
+        else
+        {
+            code = NormalizeCode(constIt->second, maxCodeSize);
+        }
+        index = 0;
+        while (index < maxCodeSize + 1)     // all simbils.!!!!!!
+        {
+            if (code[index] == '1')
+            {
+                oneByte.set(bit);
+            }
+            bit--;
+            index++;      // Reverse, because bitset.
+            if (bit == 255)       // Byte is full.
+            {
+                data[outputIndex] = (char)oneByte.to_ulong();
+                oneByte.reset();
+                outputIndex++;
+                bit = 7;
+            }                
+        }
+    } while (inputIndex++ < 255);
+    if (bit != 7)       // If last symbol in fileIn and bitset not reset.
+    {
+        data[outputIndex] = (char)oneByte.to_ulong();
+        outputIndex++;
+    }
+    return outputIndex;
+}
+
+/// Encode data and return it size.
+int Haffman::EncodeData()
+{
+    byte index, bit = 7;
+    bitset<8> oneByte;      // One byte.
+    oneByte.reset();
+    char *inputString = NULL;
+    this->data = (char*)calloc(100 + inputFileSize * 1.5, 1);
+    int indexReadSymbol, indexWriteSymbol = EncodeTree(this->data, this->codesMap);
+    int leftSize = this->inputFileSize;
+
+    while (leftSize)
+    {
+        if (this->inputFile.eof())
+        {
+            break;
+        }
+        if (leftSize < blockSize)
+        {
+            inputString = ReadFromFile(leftSize);
+        }
+        else
+        {
+            inputString = ReadFromFile(blockSize);
+        }
+        indexReadSymbol = 0;
+        while (indexReadSymbol < blockSize && leftSize)
+        {
+            index = 0;
+            string code = (*codesMap)[inputString[indexReadSymbol]];
+            while (index < code.length())
+            {
+                if (code[index] == '1')
+                {
+                    oneByte.set(bit);
+                }
+                bit--;
+                index++;      // Reverse, because bitset.
+                if (bit == 255)       // Byte is full.
+                {
+                    this->data[indexWriteSymbol] = (char)oneByte.to_ulong();
+                    oneByte.reset();
+                    indexWriteSymbol++;
+                    bit = 7;
+                }                
+            }
+            indexReadSymbol++;
+            leftSize--;
+        }
+        delete inputString;
+    }
+    if (bit != 7)       // If last symbol in fileIn and bitset not reset.
+    {
+        this->data[indexWriteSymbol] = (char)oneByte.to_ulong();
+        indexWriteSymbol++;
+    }
+    return indexWriteSymbol;
+}
+
+/// Encode function.
+int Haffman::Encode(bool isShowInfo)
+{
+    if (statusOk)
+    {
+        this->symbolsMap = GetSymbolsMap();
+        if (isShowInfo) cout << "\n Count different symbols = " << symbolsMap->size();
+        this->treeNode = GetHaffmanTree(this->symbolsMap);
+        if (isShowInfo) cout << "\n Count level of tree = " << (int)treeNode->c;
+        GetSymbolsCode(this->treeNode, this->codesMap, "");
+        if (isShowInfo) cout << "\n Create symbols code.";
+        this->outputFileSize = EncodeData();
+        if (isShowInfo) cout << "\n Data was encode.";
+        WriteToFile(this->data, this->outputFileSize);
+        if (isShowInfo) cout << "\n Data was write to output file.";
+    }
+    return outputFileSize;
+}
+//
+//Decode.
+
+
+/// Get size of output file.
+int Haffman::GetOutputFileSize()
+{
+    int size = 0;
+    for (byte i = 0; i < 4; i++)
+    {
+        size += ((int)this->inputFile.get()) << (24 - i * 8);
+    }
+    return size;
+}
+
+/// Get bits string
+string Haffman::GetBitsString(char *data, int dataSize)
+{
+    string bitsString = "";
+    for (int i = 0; i < dataSize; i++)
+    {
+        bitset<8> oneByte(data[i]);
+        bitsString += oneByte.to_string();
+    }
+    return bitsString;
+}
+
+/// Delete excess null.
+string Haffman::NormalizeCode(string code)
+{
+    byte i = 0;
+    while (code[i++] != '1');
+    return code.substr(i, code.length() - i);
+}
+
+/// Get encode tree from file and decode it.
+int Haffman::DecodeTree(char *data, map<string, char> *charMap)
+{
+    this->outputFileSize = GetOutputFileSize();
+    byte codeSize = this->inputFile.get();
+    int treeSize = 256 * codeSize / 8;      // Size in bytes.
+    char *tree = ReadFromFile(treeSize);
+    string bitsString = GetBitsString(tree, treeSize);
+
+    // Convert bits string to codes.
+    byte i = 0;
+    string code;
+    do
+    {
+        code = bitsString.substr(i * codeSize, codeSize);
+        code = NormalizeCode(code);
+        if (code != "")
+        {
+            map<string, char>::value_type *valueType =
+                 new map<string, char>::value_type(code, (char)i);
+            charMap->insert(*valueType);
+        }
+    } while (i++ < 255);
+    return treeSize + 5;
+}
+
+/// Decode data and return it size.
+int Haffman::DecodeData()
+{
+    char *inputString = NULL;
+    string bitsString;
+    this->data = (char*)calloc(inputFileSize * 1.5, 1);
+    int indexReadSymbol, indexWriteSymbol = 0;
+    int leftSize = this->inputFileSize - DecodeTree(this->data, this->charMap);
+
+    while (leftSize)
+    {
+        if (this->inputFile.eof())
+        {
+            break;
+        }
+        if (leftSize < blockSize)
+        {
+            inputString = ReadFromFile(leftSize);
+            bitsString =  GetBitsString(inputString, leftSize);
+            leftSize = 0;
+        }
+        else
+        {
+            inputString = ReadFromFile(blockSize);
+            bitsString =  GetBitsString(inputString, blockSize);
+            leftSize -= blockSize;
+        }
+        indexReadSymbol = 0;
+        while (indexReadSymbol < bitsString.length() && indexWriteSymbol < this->outputFileSize)
+        {
+            byte i = 1;
+            map<string, char>::const_iterator constIt;
+            do
+            {
+                constIt = charMap->find(bitsString.substr(indexReadSymbol, i));
+                i++;
+            } while (constIt == charMap->end());
+            this->data[indexWriteSymbol] = constIt->second;
+            indexWriteSymbol++;
+            indexReadSymbol += i - 1;
+        }
+    }
+    return indexWriteSymbol;
+}
+
+/// Decode function.
+int Haffman::Decode(bool isShowInfo)
+{
+    if (statusOk)
+    {
+        this->outputFileSize = DecodeData();
+        if (isShowInfo) cout << "\n Data was decode.";
+        WriteToFile(this->data, this->outputFileSize);
+        if (isShowInfo) cout << "\n Data was write to output file.";
+    }
+    return outputFileSize;
 }

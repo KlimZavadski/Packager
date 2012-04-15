@@ -6,8 +6,54 @@
 #include <iomanip>
 using namespace std;
 
-#include "LZMA.h"
+#include "Haffman.h"
 
+
+void Encode(string encodeFileName)
+{
+    Haffman haffman(encodeFileName);
+    if (haffman.statusOk)
+    {
+        cout << "\n\n\tEncode file size = " << haffman.Encode(true) << endl;
+    }
+}
+
+void Decode(string decodeFileName)
+{
+    Haffman haffman(decodeFileName);
+    if (haffman.statusOk)
+    {
+        cout << "\n\n\tDecode file size = " << haffman.Decode(true) << endl;
+    }
+}
+
+void main(int argc, char *argv[])
+{
+    if (argc > 1)
+    {
+        string fileName = argv[argc - 1];
+        if (2 < argc && argc < 4)     // If command line contain key as "-e" or some and fileName
+        {
+            switch (argv[1][1])
+            {
+                case 'e': Encode(fileName);
+                    break;
+                case 'd': Decode(fileName);
+                    break;
+            }
+        }
+        else
+        {
+            // Package.
+        }
+    }
+    else cout << "\n\tError! Command line is empty." << endl;
+    getch();
+}
+
+
+/*
+#include "LZMA.h"
 
 void fun(char *inputName, char *outputName)
 {
@@ -51,7 +97,7 @@ void main(int argc, char *argv[])
 	string *commandKey = NULL;
 	string packageFileName = argv[argc - 1];
 
-	if (argc > 2)				/// If command line contain key as "-s" or some
+	if (argc > 2)				// If command line contain key as "-e" or some
 	{
 		commandKey = new string[argc - 2];
 		for (int i = 1; i < argc - 1; i++)
@@ -61,4 +107,4 @@ void main(int argc, char *argv[])
 	}
 
 	fun("input.txt", "output.txt");
-}
+}*/
