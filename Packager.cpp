@@ -11,20 +11,14 @@ using namespace std;
 
 void Encode(string encodeFileName)
 {
-    Haffman haffman(encodeFileName);
-    if (haffman.statusOk)
-    {
-        cout << "\n\n\tEncode file size = " << haffman.Encode(true) << endl;
-    }
+    Haffman haffman(encodeFileName, true);
+    haffman.Encode(true);
 }
 
 void Decode(string decodeFileName)
 {
-    Haffman haffman(decodeFileName);
-    if (haffman.statusOk)
-    {
-        cout << "\n\n\tDecode file size = " << haffman.Decode(true) << endl;
-    }
+    Haffman haffman(decodeFileName, false);
+    haffman.Decode(true);
 }
 
 void main(int argc, char *argv[])

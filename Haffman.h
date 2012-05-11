@@ -12,10 +12,16 @@ using namespace std;
 #include <bitset>
 
 
+struct SmallNode
+{
+    int c;
+    SmallNode *left, *right;
+};
+
 class Node
 {
 public:
-    char c;
+    unsigned int c;
     unsigned int count;
     bool actual;
     bool composite;
@@ -40,15 +46,15 @@ public:
         this->left = this->right = NULL;
         this->nextNode = NULL;
     }    
-    static Node* Max(Node *node1, Node *node2)
+    static Node* Right(Node *node1, Node *node2)
     {
-        if ((int)node1->c <= (int)node2->c)
+        if (node1->count > node2->count)
             return node1;
         else return node2;
     }
-    static Node* Min(Node *node1, Node *node2)
+    static Node* Left(Node *node1, Node *node2)
     {
-        if ((int)node1->c > (int)node2->c)
+        if (node1->count <= node2->count)
             return node1;
         else return node2;
     }
@@ -56,26 +62,26 @@ public:
     {
         Node *newNode = new Node();
         newNode->composite = true;
-        newNode->count = node1->count + node2->count;        
+        newNode->count = node1->count + node2->count;
         while (true)
         {
             if (node1->composite && node2->composite)
             {
-                newNode->c = (int)node1->c + (int)node2->c;
-                newNode->left = Min(node1, node2);      // Left leaf - min. It have a code 1.
-                newNode->right = Max(node1, node2);     // Right leaf - max. It have a code 0.
+                newNode->c = node1->c + node2->c;
+                newNode->left = Left(node1, node2);      // Left leaf - min. It have a code 1.
+                newNode->right = Right(node1, node2);     // Right leaf - max. It have a code 0.
                 break;
             }
             if (node1->composite)
             {
-                newNode->c = (int)node1->c + 1;
+                newNode->c = node1->c + 1;
                 newNode->left = node1;
                 newNode->right = node2;
                 break;
             }
             if (node2->composite)
             {
-                newNode->c = (int)node2->c + 1;
+                newNode->c = node2->c + 1;
                 newNode->left = node2;
                 newNode->right = node1;
                 break;
@@ -96,20 +102,20 @@ public:
 class Haffman
 {
 public:
-    Haffman(string fileName);
+    Haffman(string fileName, bool isEncode);
     ~Haffman();
 
-    int Encode(bool isShowInfo);
-    int Decode(bool isShowInfo);
+    unsigned int Encode(bool isShowInfo);
+    unsigned int Decode(bool isShowInfo);
 
     bool statusOk;
     string fileName;
-    int inputFileSize;  // in Byte.
-    int outputFileSize;    // in Byte.
+    unsigned int inputFileSize;  // in Byte.
+    unsigned int outputFileSize;    // in Byte.
 
 private:
-    char* ReadFromFile(int count);
-    int WriteToFile(char *outputString, int count);
+    char* ReadFromFile(unsigned int count);
+    int WriteToFile(char *outputString, unsigned int count);
 
 
     void AddSymbolToMap(char c, map<char, unsigned int> *symbolsMap);
@@ -120,21 +126,22 @@ private:
     Node* GetHaffmanTree(map<char, unsigned int> *symbolsMap);
     void GetSymbolsCode(Node *nodeTree, map<char, string> *codesMap, string code);
     string NormalizeCode(string code, byte maxCodeSize);
-    int EncodeTree(char *data, map<char, string> *codesMap);
-    int EncodeData();
+    unsigned int EncodeTree(char *data, map<char, string> *codesMap);
+    unsigned int EncodeData();
     
 
-    int GetOutputFileSize();
-    string GetBitsString(char *data, int dataSize);
+    unsigned int GetOutputFileSize();
+    char* GetBitsString(char *data, int dataSize);
     string NormalizeCode(string code);
-    int DecodeTree(char *data, map<string, char> *charMap);
-    int DecodeData();
+    unsigned int DecodeTree(char *data, map<string, char> *charMap);
+    unsigned int DecodeData();
 
 
     ifstream inputFile;
     ofstream outputFile;
 
     char* data;
+    unsigned int sizeOfTree;
     map<char, unsigned int> *symbolsMap;
     map<char, string> *codesMap;
     map<string, char> *charMap;
