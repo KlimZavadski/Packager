@@ -13,6 +13,7 @@ void Encode(string encodeFileName)
 {
     Haffman haffman(encodeFileName, true);
     haffman.Encode(true);
+    haffman.ShowEncodeTimeTable();
 }
 
 void Decode(string decodeFileName)
@@ -23,25 +24,23 @@ void Decode(string decodeFileName)
 
 void main(int argc, char *argv[])
 {
-    if (argc > 1)
+    if (!argc)
     {
-        string fileName = argv[argc - 1];
-        if (2 < argc && argc < 4)     // If command line contain key as "-e" or some and fileName
+        cout << "\n\tError! Command line is empty." << endl;
+        return;
+    }
+    if (argc == 3)
+    {
+        string fileName = argv[2];
+        switch (argv[1][1])
         {
-            switch (argv[1][1])
-            {
-                case 'e': Encode(fileName);
-                    break;
-                case 'd': Decode(fileName);
-                    break;
-            }
-        }
-        else
-        {
-            // Package.
+            case 'e': Encode(fileName);
+                break;
+            case 'd': Decode(fileName);
+                break;
         }
     }
-    else cout << "\n\tError! Command line is empty." << endl;
+    else cout << "\n\tError! Less than 2 parametr in command line." << endl;
     getch();
 }
 

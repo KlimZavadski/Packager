@@ -14,89 +14,56 @@ using namespace std;
 
 struct SmallNode
 {
-    int c;
+    int symbol;
     SmallNode *left, *right;
 };
 
-class Node
-{
-public:
-    unsigned int c;
-    unsigned int count;
-    bool actual;
-    bool composite;
-    Node *left, *right;
-    Node *nextNode;
 
-    Node()
-    {
-        this->c = 0;
-        this->count = 0;
-        this->actual = true;
-        this->composite = false;
-        this->left = this->right = NULL;
-        this->nextNode = NULL;
-    }
-    Node(char c)
-    {
-        this->c = c;
-        this->count = 1;
-        this->actual = true;
-        this->composite = false;
-        this->left = this->right = NULL;
-        this->nextNode = NULL;
-    }    
-    static Node* Right(Node *node1, Node *node2)
+struct Node
+{
+    unsigned long count;
+    string code;
+    bool actual;
+    Node *left, *right;
+};
+
+static Node* GetNewNode(Node *node1, Node *node2)
+{
+    Node *newNode = new Node;
+    newNode->count = node1->count + node2->count;
+    newNode->actual = true;
+
+    if (node1->right && node2->right)
     {
         if (node1->count > node2->count)
-            return node1;
-        else return node2;
-    }
-    static Node* Left(Node *node1, Node *node2)
-    {
-        if (node1->count <= node2->count)
-            return node1;
-        else return node2;
-    }
-    static Node* AddNewNode(Node *node1, Node *node2)
-    {
-        Node *newNode = new Node();
-        newNode->composite = true;
-        newNode->count = node1->count + node2->count;
-        while (true)
         {
-            if (node1->composite && node2->composite)
-            {
-                newNode->c = node1->c + node2->c;
-                newNode->left = Left(node1, node2);      // Left leaf - min. It have a code 1.
-                newNode->right = Right(node1, node2);     // Right leaf - max. It have a code 0.
-                break;
-            }
-            if (node1->composite)
-            {
-                newNode->c = node1->c + 1;
-                newNode->left = node1;
-                newNode->right = node2;
-                break;
-            }
-            if (node2->composite)
-            {
-                newNode->c = node2->c + 1;
-                newNode->left = node2;
-                newNode->right = node1;
-                break;
-            }
-            else
-            {
-                newNode->c = 1;
-                newNode->left = node1;
-                newNode->right = node2;
-                break;
-            }
+            newNode->right = node1;     // Right leaf - max. It have a code 0.
+            newNode->left = node2;      // Left leaf - min. It have a code 1.
         }
+        else
+        {
+            newNode->right = node2;
+            newNode->left = node1;
+        }    
         return newNode;
     }
-};
+    if (node1->right)
+    {
+        newNode->right = node2;
+        newNode->left = node1;
+        return newNode;
+    }
+    if (node2->right)
+    {
+        newNode->right = node1;
+        newNode->left = node2;
+        return newNode;
+    }
+    newNode->right = node2;
+    newNode->left = node1;
+    return newNode;
+}
+//
 //
 
 class Haffman
@@ -107,45 +74,46 @@ public:
 
     unsigned int Encode(bool isShowInfo);
     unsigned int Decode(bool isShowInfo);
+    void ShowEncodeTimeTable();
 
-    bool statusOk;
+    bool status;
     string fileName;
-    unsigned int inputFileSize;  // in Byte.
-    unsigned int outputFileSize;    // in Byte.
+    unsigned int inputFileSize;     // in Bytes.
+    unsigned int outputFileSize;    // in Bytes.
+    byte maxCodeSize;                  // in bits.
+    unsigned int sizeOfTree;        // in Bytes.
 
 private:
-    char* ReadFromFile(unsigned int count);
-    int WriteToFile(char *outputString, unsigned int count);
+    char* ReadFromFile(unsigned long count);
+    int WriteToFile(char *outputString, unsigned long count);
 
 
-    void AddSymbolToMap(char c, map<char, unsigned int> *symbolsMap);
-    map<char, unsigned int>* GetSymbolsMap();
-    Node* GetNodeList(map<char, unsigned int> *symbolsMap);
-    Node* GetLastNode(Node *firstNode);
-    Node* FindLeastNode(Node *firstNode);
-    Node* GetHaffmanTree(map<char, unsigned int> *symbolsMap);
-    void GetSymbolsCode(Node *nodeTree, map<char, string> *codesMap, string code);
+    void GetSymbolsMap();
+    Node* FindLeastNode(int lastNodeIndex);
+    Node* GetHaffmanTree();
+    void GetSymbolsCode(Node *node, string code);
+    char* GetBytesString(char *inputData, unsigned long dataSize, unsigned long &outputSize);
     string NormalizeCode(string code, byte maxCodeSize);
-    unsigned int EncodeTree(char *data, map<char, string> *codesMap);
+    unsigned int EncodeTree();
     unsigned int EncodeData();
     
 
     unsigned int GetOutputFileSize();
-    char* GetBitsString(char *data, int dataSize);
-    string NormalizeCode(string code);
-    unsigned int DecodeTree(char *data, map<string, char> *charMap);
+    char* GetBitsString(char *data, unsigned int dataSize);
+    string NormalizeCode(char *bitsString, byte symbol, byte codeSize);
+    unsigned int DecodeTree(char *data, map<string, char> *charsMap);
+    SmallNode* DecodeHaffmanTree(map<string, char> *charsMap, string code);
     unsigned int DecodeData();
 
 
     ifstream inputFile;
     ofstream outputFile;
 
-    char* data;
-    unsigned int sizeOfTree;
-    map<char, unsigned int> *symbolsMap;
-    map<char, string> *codesMap;
-    map<string, char> *charMap;
-    Node *treeNode;
+    Node **symbolsMap;
+    int countSymbols;
+    Node *rootTree;
+    long clocks[10];
+    byte clocksCount;
 };
 
 #endif
