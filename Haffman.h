@@ -75,13 +75,14 @@ public:
     unsigned int Encode(bool isShowInfo);
     unsigned int Decode(bool isShowInfo);
     void ShowEncodeTimeTable();
+    void ShowDecodeTimeTable();
 
     bool status;
     string fileName;
     unsigned int inputFileSize;     // in Bytes.
     unsigned int outputFileSize;    // in Bytes.
     byte maxCodeSize;                  // in bits.
-    unsigned int sizeOfTree;        // in Bytes.
+    unsigned int treeSize;        // in Bytes.
 
 private:
     char* ReadFromFile(unsigned long count);
@@ -92,17 +93,17 @@ private:
     Node* FindLeastNode(int lastNodeIndex);
     Node* GetHaffmanTree();
     void GetSymbolsCode(Node *node, string code);
-    char* GetBytesString(char *inputData, unsigned long dataSize, unsigned long &outputSize);
+    char* GetBytesString(char *inputData, unsigned long inputSize, unsigned long &outputSize);
     string NormalizeCode(string code, byte maxCodeSize);
     unsigned int EncodeTree();
     unsigned int EncodeData();
     
 
     unsigned int GetOutputFileSize();
-    char* GetBitsString(char *data, unsigned int dataSize);
+    char* GetBitsString(char *inputData, unsigned long inputSize, unsigned long &outputSize);
     string NormalizeCode(char *bitsString, byte symbol, byte codeSize);
-    unsigned int DecodeTree(char *data, map<string, char> *charsMap);
-    SmallNode* DecodeHaffmanTree(map<string, char> *charsMap, string code);
+    unsigned int DecodeTree();
+    Node* DecodeHaffmanTree();//map<string, char> *charsMap, string code
     unsigned int DecodeData();
 
 
@@ -111,7 +112,7 @@ private:
 
     Node **symbolsMap;
     int countSymbols;
-    Node *rootTree;
+    Node *treeRoot;
     long clocks[10];
     byte clocksCount;
 };
