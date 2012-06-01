@@ -20,6 +20,7 @@ void Decode(string decodeFileName)
 {
     Haffman haffman(decodeFileName, false);
     haffman.Decode(true);
+    haffman.ShowDecodeTimeTable();
 }
 
 void main(int argc, char *argv[])

@@ -19,17 +19,38 @@ struct SmallNode
 };
 
 
-struct Node
+class Node
 {
+public:
     unsigned long count;
     string code;
     bool actual;
     Node *left, *right;
+
+    Node()
+    {
+        this->count = 0;
+        this->actual = false;
+        this->left = this->right = NULL;
+    }
+    Node(unsigned long count)
+    {
+        this->count = count;
+        this->actual = false;
+        this->left = this->right = NULL;
+    }
+    Node(char *code)
+    {
+        this->count = 0;
+        this->code = code;
+        this->actual = false;
+        this->left = this->right = NULL;
+    }
 };
 
 static Node* GetNewNode(Node *node1, Node *node2)
 {
-    Node *newNode = new Node;
+    Node *newNode = new Node();
     newNode->count = node1->count + node2->count;
     newNode->actual = true;
 
@@ -81,8 +102,8 @@ public:
     string fileName;
     unsigned int inputFileSize;     // in Bytes.
     unsigned int outputFileSize;    // in Bytes.
-    byte maxCodeSize;                  // in bits.
-    unsigned int treeSize;        // in Bytes.
+    byte maxCodeSize;               // in bits.
+    unsigned int treeSize;          // in Bytes.
 
 private:
     char* ReadFromFile(unsigned long count);
@@ -101,9 +122,9 @@ private:
 
     unsigned int GetOutputFileSize();
     char* GetBitsString(char *inputData, unsigned long inputSize, unsigned long &outputSize);
-    string NormalizeCode(char *bitsString, byte symbol, byte codeSize);
-    unsigned int DecodeTree();
-    Node* DecodeHaffmanTree();//map<string, char> *charsMap, string code
+    char* NormalizeCode(char *bitsString, byte symbol, byte codeSize);
+    unsigned int GetHaffmanTree(int);
+    void DecodeTree();
     unsigned int DecodeData();
 
 
