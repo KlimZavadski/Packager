@@ -17,12 +17,10 @@ using namespace std;
 class Haffman
 {
 public:
-    Haffman(string fileName, bool isEncode);
+    Haffman(string fileName);
     ~Haffman();
 
-    unsigned int Encode(bool isShowInfo);
     unsigned int Decode(bool isShowInfo);
-    void ShowEncodeTimeTable();
     void ShowDecodeTimeTable();
 
     bool status;
@@ -34,18 +32,7 @@ public:
 
 private:
     char* ReadFromFile(unsigned long count);
-    int WriteToFile(char *outputString, unsigned long count);
-
-
-    void GetSymbolsMap();
-    Node* FindLeastNode(int lastNodeIndex);
-    Node* GetHaffmanTree();
-    void GetSymbolsCode(Node *node, string code);
-    char* GetBytesString(char *inputData, unsigned long inputSize, unsigned long &outputSize);
-    string NormalizeCode(string code, byte maxCodeSize);
-    unsigned int EncodeTree();
-    unsigned int EncodeData();
-    
+    int WriteToFile(char *outputString, unsigned long count);    
 
     unsigned int GetOutputFileSize();
     char* GetBitsString(char *inputData, unsigned long inputSize, unsigned long &outputSize);
